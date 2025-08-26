@@ -1,0 +1,13 @@
+WindowsEvent 
+| where TimeGenerated > ago(7d) 
+| extend CollectorName = extract(@"machines/([^/]+)", 1, _ResourceId) 
+| extend ServerName = Computer
+| summarize LastSeenTime = arg_max(TimeGenerated,*) by ServerName, CollectorName
+| project ["Server Name"]=ServerName, ["Collector Name"]=CollectorName, LastSeenTime
+| extend Diff = datetime_diff('hour', now(), LastSeenTime)
+| extend StatusIndex = case(Diff > 12,0,1) 
+// Uncomment below line to view only offline server list
+//| where Diff > 12
+| extend Status = case(Diff > 12,"❌ Offline","✅ Online")
+| order by StatusIndex asc
+| project-away StatusIndex,Diff
