@@ -1,0 +1,12 @@
+Syslog 
+| where TimeGenerated > ago(7d)
+| where not(CollectorHostName == "") 
+| summarize LastSeenTime = arg_max(TimeGenerated,*) by Computer, CollectorHostName
+| project ["Server Name"]=Computer, ["Collector Name"]=CollectorHostName, LastSeenTime
+| extend Diff = datetime_diff('hour', now(), LastSeenTime)
+| extend StatusIndex = case(Diff > 12,0,1) 
+// Uncomment below line to view only offline server list
+//| where Diff > 10 
+| extend Status = case(Diff > 10,"❌ Offline","✅ Online")
+| order by StatusIndex asc
+| project-away StatusIndex, Diff
