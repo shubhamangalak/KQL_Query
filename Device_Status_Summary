@@ -1,0 +1,35 @@
+let assetList = _GetWatchlist('RCAPMasterAssetInventoryv2') 
+    | project Computer, ComputerIP, DeviceType, Entity, OS, Collector, StatusThreshold, StatusThresholdComments, Comments;
+let logs = union isfuzzy=true
+    WindowsEvent
+  , Syslog
+  , SecurityEvent
+  , CommonSecurityLog;
+let m365 = OfficeActivity
+| extend Computer = "Microsoft 365";
+let entra = union isfuzzy=true
+    AuditLogs
+  , SigninLogs
+| extend Computer = "Microsoft Entra ID";
+let sophosedr = union SophosEP*
+| extend Computer = "Sophos EDR";
+let msintune = union Intune*
+| extend Computer = "Microsoft Intune";
+union logs,m365,entra,sophosedr,msintune
+| extend LogComputer = Computer
+| summarize LastLogTimestamp = max(TimeGenerated) by LogComputer
+| join kind=rightouter (
+    assetList
+) on $left.LogComputer == $right.Computer
+| extend MinutesSinceLastLog = iif(isnull(LastLogTimestamp), -1, datetime_diff("minute", now(), LastLogTimestamp))
+| extend Status1 = case(
+    MinutesSinceLastLog == -1, "Offline",
+    MinutesSinceLastLog > toint(StatusThreshold), "Offline",
+    "Online"
+)
+| extend Status = case(Status1 == "Online", "🟢 Reporting", "🔴 Not Reporting")
+| project Computer, ComputerIP, DeviceType, Entity, OS, Collector, Comments, LastLogTimestamp, StatusThreshold, StatusThresholdComments, Status
+| where Entity == "RCL"
+| summarize Reporting = countif(Status == "🟢 Reporting"), 
+    NotReporting = countif(Status == "🔴 Not Reporting") 
+    by DeviceType
