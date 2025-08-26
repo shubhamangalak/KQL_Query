@@ -1,0 +1,32 @@
+//Total Data Ingested per Log Analytics Workspace
+union 
+workspace("Log-GOLIL-Sentinel-CI-01").Usage,
+workspace("Log-GRO-Sentinel-CI-01").Usage,
+workspace("Log-HGL-Sentinel-CI-01").Usage,
+workspace("Log-Hinduja-Hospital-Sentinel-CI-01").Usage,
+workspace("Log-HREPL-Sentinel-CI-01").Usage,
+workspace("Log-HTL-Sentinel-CI-01").Usage,
+workspace("Log-OHM-Sentinel-CI-01").Usage,
+workspace("Log-RCL-Sentinel-CI-01").Usage,
+workspace("Log-Switch-Sentinel-CI-01").Usage
+| where TimeGenerated >= ago(24h) // Adjust the time range as needed
+| where IsBillable == true
+| summarize TotalDataIngestedGB = sum(Quantity) / 1024 by ResourceUri
+| order by TotalDataIngestedGB 
+
+
+//Total Data Ingested per DAY
+union 
+workspace("64937574-ce87-4fdc-9c03-0224616afeac").Usage,//RCL
+workspace("10e06762-0b3d-4096-a47b-062dd71372e2").Usage,//HGL
+workspace("a8f52eb0-77b1-431c-9b13-34e434fd78c1").Usage,//GOLIL
+workspace("ff38e698-8537-4954-8059-d1b30d3c29d2").Usage,//GRO
+workspace("3f13bde0-a078-430a-bc38-fd7ee851139e").Usage,//Hospital
+workspace("f32c170c-a518-4109-9f83-6f5fd1d9cb65").Usage,//HREPL
+workspace("5f7a86de-94f1-4d5e-ab60-b41ba281918d").Usage,//HTL
+workspace("467a97ab-0334-4b52-8703-71b8c8940e0a").Usage,//OHM
+workspace("1bae2d65-733a-4ad3-915c-3e9286441943").Usage//Switch
+| where TimeGenerated >= ago(7d) // Adjust the time range as needed
+| where IsBillable == true
+| summarize TotalDataIngestedGB = sum(Quantity) / 1024 by bin(TimeGenerated, 1d)
+| order by TimeGenerated desc
