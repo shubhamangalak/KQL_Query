@@ -1,0 +1,16 @@
+let Owner = "ABC";
+let EmailID = "ABC@sonata-software.com";
+Heartbeat
+| where TimeGenerated > ago(7d)
+| where Category == 'Azure Monitor Agent'
+| summarize arg_max(TimeGenerated, *) by SourceComputerId
+| extend Diff = datetime_diff('minute', now(), TimeGenerated)
+| extend StatusIndex = case(Diff > 10,0,1)
+| extend Status = case(Diff > 10,"❌ Offline","✅ Online")
+// Uncomment below line to view offline list
+//| where Diff > 10
+| order by StatusIndex asc
+| extend ComputerPrivateIPs = replace_string(tostring(ComputerPrivateIPs),"["," " )
+| extend ComputerPrivateIPs = replace_string(tostring(ComputerPrivateIPs),"]"," " )
+| extend ComputerPrivateIPs = replace_string(tostring(ComputerPrivateIPs),"\""," " )
+| project ["Collector Name"]=Resource, ["Private IP"]=ComputerPrivateIPs,Status, LastSeen=TimeGenerated,OSType,Owner,["Email ID"]=EmailID
