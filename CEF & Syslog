@@ -1,0 +1,37 @@
+union isfuzzy=true 
+(CommonSecurityLog
+| where CollectorHostName contains "rclsiem"),
+(Syslog
+| where Computer has_any ("firepower","UAT-PRI-RCAP.COM","NGIPS-IPS-PRI","NGIPS-IPS-SEC","10.63.244.67","10.63.253.181","10.63.253.189" ,"10.63.253.215","10.65.8.222","10.63.247.18","10.63.247.19","10.63.247.20","10.65.8.248","10.63.247.16","10.63.247.11","10.63.247.12","10.63.247.13","10.63.247.14","10.63.253.228","ec2-15-207-123-24.ap-south-1.compute.amazonaws.com",
+"10.63.246.53","10.63.246.58","10.63.246.54","10.63.246.48","10.63.246.32","10.63.246.99","10.63.246.232","10.63.246.233","10.63.246.34","10.63.246.37","10.63.246.38","10.63.246.40", "10.63.246.41","10.63.246.44","10.63.246.49", "10.63.246.50","10.63.246.61","10.63.246.62","10.63.246.63", "10.63.246.59", "10.63.246.60" ,"10.63.246.33","10.63.246.47", "10.63.246.55", "10.63.246.57" ,"10.63.246.234" ,"10.63.246.235" ,"172.16.12.133", "10.63.246.31","172.16.12.132")
+| extend DeviceVendor = case(
+Computer has_any ("firepower","UAT-PRI-RCAP.COM","NGIPS-IPS-PRI","NGIPS-IPS-SEC"), "Cisco", 
+Computer has "10.63.244.67" ,"Fortinet",
+Computer has_any ("10.63.253.181","10.63.253.189" ,"10.63.253.215","10.65.8.222","10.63.247.18","10.63.247.19","10.63.247.20","10.65.8.248","10.63.247.16","10.63.247.11","10.63.247.12","10.63.247.13","10.63.247.14"),"Citrix",
+Computer has "10.63.253.228" ,"Zscaler",
+Computer has "ec2-15-207-123-24.ap-south-1.compute.amazonaws.com","Checkpoint",
+Computer has_any ( "10.63.246.53","10.63.246.58","10.63.246.54","10.63.246.48","10.63.246.32","10.63.246.99","10.63.246.232","10.63.246.233","10.63.246.34","10.63.246.37","10.63.246.38","10.63.246.40", "10.63.246.41","10.63.246.44","10.63.246.49", "10.63.246.50","10.63.246.61","10.63.246.62","10.63.246.63", "10.63.246.59", "10.63.246.60" ,"10.63.246.33","10.63.246.47", "10.63.246.55", "10.63.246.57" ,"10.63.246.234" ,"10.63.246.235" ,"172.16.12.133", "10.63.246.31","172.16.12.132"),"Cisco",
+"Unknown")
+| extend DeviceProduct = case(
+Computer has "firepower" or Computer has "UAT-PRI-RCAP.COM" , "Firewall/FTD", 
+Computer has "NGIPS-IPS-PRI" or Computer has "NGIPS-IPS-SEC" ,"NGIPS",
+Computer has "10.63.244.67" ,"Firewall",
+Computer has_any ("10.63.253.181","10.63.253.189" ,"10.63.253.215"),"MDM",
+Computer has_any ("10.65.8.222","10.63.247.18"),"VPN",
+Computer has_any ("10.63.247.19","10.63.247.20"),"VDI",
+Computer has_any ("10.65.8.248","10.63.247.16"),"WAF",
+Computer has_any ("10.63.247.11","10.63.247.12","10.63.247.13","10.63.247.14"),"Load Balancer/ADC Gateway",
+Computer has "10.63.253.228" ,"ZPA connector",
+Computer has_any ( "10.63.246.53","10.63.246.58","10.63.246.54","10.63.246.48","10.63.246.32","10.63.246.99","10.63.246.232","10.63.246.233","10.63.246.34","10.63.246.37","10.63.246.38","10.63.246.40", "10.63.246.41","10.63.246.44","10.63.246.49", "10.63.246.50","10.63.246.61","10.63.246.62","10.63.246.63", "10.63.246.59", "10.63.246.60" ,"10.63.246.33","10.63.246.47", "10.63.246.55", "10.63.246.57" ,"10.63.246.234" ,"10.63.246.235" ,"172.16.12.133", "10.63.246.31","172.16.12.132"),"Router & Switches",
+Computer has "ec2-15-207-123-24.ap-south-1.compute.amazonaws.com","Email Harmony",
+"Unknown"))
+| where TimeGenerated > ago(7d)
+| summarize LastSeenTime = arg_max(TimeGenerated,*) by Computer, CollectorHostName
+| project ["Server Name"] =Computer, ["Collector Name"]=CollectorHostName, LastSeenTime,DeviceVendor,DeviceProduct
+| extend Diff = datetime_diff('hour', now(), LastSeenTime)
+| extend StatusIndex = case(Diff > 12,0,1) 
+// Uncomment below line to view only offline server list
+//| where Diff > 10 
+| extend Status = case(Diff > 10,"❌ Offline","✅ Online")
+| order by StatusIndex asc
+| project-away StatusIndex, Diff
