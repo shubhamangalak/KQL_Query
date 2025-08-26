@@ -1,0 +1,106 @@
+union isfuzzy=true 
+(CommonSecurityLog
+| where not(CollectorHostName == "")),
+(Syslog
+| where Computer has_any ("firepower","UAT-PRI-RCAP.COM","NGIPS-IPS-PRI","NGIPS-IPS-SEC","10.63.244.67","10.63.253.181","10.63.253.189" ,"10.63.253.215","10.65.8.222","10.63.247.18","10.63.247.19","10.63.247.20","10.65.8.248","10.63.247.16","10.63.247.11","10.63.247.12","10.63.247.13","10.63.247.14","10.63.253.228","ec2-15-207-123-24.ap-south-1.compute.amazonaws.com","10.62.172.132","10.62.185.132","10.62.185.133","10.62.173.132","citrixwaf.brobotinsurance.com","10.62.185.20","10.65.8.37","10.65.8.149",
+"10.126.164.13", "rnlicfortiauth", "10.126.252.8", "10.126.252.9", "RNLIC_YOTTA_DC_AirtelBackhaul", "RNLIC_YOTTA_DC_TATABackhaul", "RLI_YOTTA_SIFYMPLS_Backhaul", "RLIIDCVPN01-PRI", "RLIIDCVPN02-SEC", "RLIGGNFGT-PRI", "RLIGGNFGT-SEC","RNLIHOBKCFGT_PRI","RNLIHOBKCFGT_INT","RLIGENFGINT", "RLIFE-DR-FG600E", "RLI-DR-MPLS-FW", "RLIFE_DR_INTERNET", "10.126.164.107", "10.126.164.108", "10.126.142.104", "10.126.142.105","RNLIHOBKCFGT_SEC","FMC-MGMT-SERVER")
+| where not(CollectorHostName == "") 
+| extend DeviceVendor = case(
+Computer has_any ("firepower","UAT-PRI-RCAP.COM","NGIPS-IPS-PRI","NGIPS-IPS-SEC","FMC-MGMT-SERVER"), "Cisco", 
+Computer has "10.63.244.67" ,"Fortinet",
+Computer has_any ("10.63.253.181","10.63.253.189" ,"10.63.253.215","10.65.8.222","10.63.247.18","10.63.247.19","10.63.247.20","10.65.8.248","10.63.247.16","10.63.247.11","10.63.247.12","10.63.247.13","10.63.247.14"),"Citrix",
+Computer has "10.63.253.228" ,"Zscaler",
+Computer has "ec2-15-207-123-24.ap-south-1.compute.amazonaws.com","Checkpoint",
+Computer has_any ("10.62.172.132","10.62.185.132","10.62.185.133","10.62.173.132"), "Fortinet", 
+Computer has_any ("citrixwaf.brobotinsurance.com","10.62.185.20","10.65.8.37","10.65.8.149"),"Citrix",
+Computer has_any ("10.126.164.13", "rnlicfortiauth", "10.126.252.8", "10.126.252.9", "RNLIC_YOTTA_DC_AirtelBackhaul", "RNLIC_YOTTA_DC_TATABackhaul", "RLI_YOTTA_SIFYMPLS_Backhaul", "RLIIDCVPN01-PRI", "RLIIDCVPN02-SEC", "RLIGGNFGT-PRI", "RLIGGNFGT-SEC", "RLIFE-DR-FG600E", "RLI-DR-MPLS-FW", "RLIFE_DR_INTERNET","RNLIHOBKCFGT_PRI","RNLIHOBKCFGT_INT","RLIGENFGINT","RNLIHOBKCFGT_SEC"),"Fortinet", 
+Computer has_any ("10.126.164.107", "10.126.164.108", "10.126.142.104", "10.126.142.105"),"Citrix",
+"Unknown")
+| extend DeviceProduct = case(
+Computer has "firepower" or Computer has "UAT-PRI-RCAP.COM" , "Firewall/FTD", 
+Computer has "NGIPS-IPS-PRI" or Computer has "NGIPS-IPS-SEC" ,"NGIPS",
+Computer has "10.63.244.67" ,"Firewall",
+Computer has_any ("10.63.253.181","10.63.253.189" ,"10.63.253.215"),"MDM",
+Computer has_any ("10.65.8.222","10.63.247.18"),"VPN",
+Computer has_any ("10.63.247.19","10.63.247.20"),"VDI",
+Computer has_any ("10.65.8.248","10.63.247.16"),"WAF",
+Computer has_any ("10.63.247.11","10.63.247.12","10.63.247.13","10.63.247.14"),"Load Balancer/ADC",
+Computer has "10.63.253.228" ,"ZPA connector",
+Computer has "ec2-15-207-123-24.ap-south-1.compute.amazonaws.com","Email Harmony",
+Computer has_any ("10.62.172.132"), "Firewall", 
+Computer has_any ("10.62.185.132","10.62.185.133","10.62.173.132"), "Load Balancer/ADC", 
+Computer has_any ("citrixwaf.brobotinsurance.com","10.62.185.20","10.65.8.37","10.65.8.149"),"WAF",
+Computer has_any ("10.126.164.13", "rnlicfortiauth", "10.126.252.8", "10.126.252.9", "RNLIC_YOTTA_DC_AirtelBackhaul", "RNLIC_YOTTA_DC_TATABackhaul", "RLI_YOTTA_SIFYMPLS_Backhaul", "RLIIDCVPN01-PRI", "RLIIDCVPN02-SEC", "RLIGGNFGT-PRI", "RLIGGNFGT-SEC","RNLIHOBKCFGT_PRI","RNLIHOBKCFGT_INT","RLIGENFGINT","RNLIHOBKCFGT_SEC"),"DC Firewall", 
+Computer has_any ("10.126.164.107", "10.126.164.108", "10.126.142.104", "10.126.142.105"),"Load balancer",
+Computer has_any ("RLIFE-DR-FG600E", "RLI-DR-MPLS-FW", "RLIFE_DR_INTERNET"),"DR Firewall", 
+Computer has "FMC-MGMT-SERVER","FMC",
+"Unknown") ),
+(WindowsEvent
+| where Computer has_any ("RCLDAKDC08", "RCLDAKDC07","RCLDAKDC06","RCLDAKDC03","BROBOTDC01","BROBOTDC02","BROBOTDC03","RGIAADC","RGIAD")
+| extend CollectorHostName = extract(@"machines/([^/]+)", 1, _ResourceId) 
+| extend Computer = extract(@"^([^\.]+)", 1, Computer)
+| extend DeviceVendor="Microsoft"
+| extend DeviceProduct = case(
+Computer has_any ( "RCLDAKDC08", "RCLDAKDC07","RCLDAKDC06","RCLDAKDC03","BROBOTDC01","BROBOTDC02","BROBOTDC03","RGIAADC","RGIAD"), "Domain Controller",
+"Unknown" )),
+(SophosEPCEvents_RARC_CL
+| extend Computer="Sophos-Computer-RARC"
+| extend CollectorHostName="API Based"
+| extend DeviceVendor="Sophos"
+| extend DeviceProduct = "Endpoint Protection" ),
+(SophosEPCEvents_RSEC_CL
+| extend Computer="Sophos-Computer-RSEC"
+| extend CollectorHostName="API Based"
+| extend DeviceVendor="Sophos"
+| extend DeviceProduct = "Endpoint Protection" ),
+(SophosEPCEvents_RGI_CL
+| extend Computer="Sophos-Computer-RGI"
+| extend CollectorHostName="API Based"
+| extend DeviceVendor="Sophos"
+| extend DeviceProduct = "Endpoint Protection" ),
+(SophosEPCEvents_RLI_CL
+| extend Computer="Sophos-Computer-RNLI"
+| extend CollectorHostName="API Based"
+| extend DeviceVendor="Sophos"
+| extend DeviceProduct = "Endpoint Protection" ),
+(SophosEPEvents_CL
+| where CustomerId contains "3e5de2d8-98e4-458e-b312-005ba0d786b7" and SrcDvcType contains "computer"
+| extend Computer="Sophos-Computer-RCL"
+| extend CollectorHostName="API Based"
+| extend DeviceVendor="Sophos"
+| extend DeviceProduct = "Endpoint Protection" ),
+(SophosEPEvents_RNLI_CL
+| extend Computer="Sophos-Server-RNLI"
+| extend CollectorHostName="API Based"
+| extend DeviceVendor="Sophos"
+| extend DeviceProduct = "Server Protection" ),
+(SophosEPEvents_CL
+| where CustomerId contains "faa679ac-350f-4084-93b9-b69a1fd4ce2a" and SrcDvcType contains "server"
+| extend Computer="Sophos-Server-RGI"
+| extend CollectorHostName="API Based"
+| extend DeviceVendor="Sophos"
+| extend DeviceProduct = "Server Protection" )
+| where TimeGenerated > ago(7d)
+| extend EntityName = case(
+Computer has_any ("10.126.164.13", "rnlicfortiauth", "10.126.252.8", "10.126.252.9", "RNLIC_YOTTA_DC_AirtelBackhaul", "RNLIC_YOTTA_DC_TATABackhaul", "RLI_YOTTA_SIFYMPLS_Backhaul", "RLIIDCVPN01-PRI", "RLIIDCVPN02-SEC", "RLIGGNFGT-PRI", "RLIGGNFGT-SEC","RNLIHOBKCFGT_PRI","RNLIHOBKCFGT_INT","RLIGENFGINT","RNLIHOBKCFGT_SEC","RLIFE-DR-FG600E", "RLI-DR-MPLS-FW", "RLIFE_DR_INTERNET","10.126.164.107", "10.126.164.108", "10.126.142.104", "10.126.142.105"),"RNLI",
+Computer has_any ("10.185.6.126","APNIC-PRI","UAT-PRI-RCAP.COM","RCAP-Zscaler_FW-Pri","zscaler-nss","APNIC-SEC","RCAP-Zscaler_FW-Sec","rcldlppolicy.reliancecapital.com","firepower","UAT-PRI-RCAP.COM","NGIPS-IPS-SEC","NGIPS-IPS-PRI","10.63.253.228","10.65.8.222","10.63.247.18","10.65.8.248","10.63.253.181","10.63.253.189","10.63.253.215","10.63.247.16","10.63.244.67","ec2-15-207-123-24.ap-south-1.compute.amazonaws.com","10.63.247.19","10.63.247.20","10.63.247.14","10.63.247.12","10.63.247.11","10.63.247.13","RCLDAKDC06","RCLDAKDC07","RCLDAKDC08","10.185.6.126","FMC-MGMT-SERVER"),"RCL",
+Computer has "Sophos-Computer-RARC","RARC",
+Computer has "Sophos-Computer-RSEC","RSEC",
+Computer has_any ("Sophos-Computer-RGI","Sophos-Server-RGI"),"RGI",
+Computer has_any ("Sophos-Computer-RNLI","Sophos-Server-RNLI"),"RNLI",
+Computer has "Sophos-Computer-RCL","RCL",
+"RGI"
+)
+| summarize LastSeenTime = arg_max(TimeGenerated,*) by Computer, CollectorHostName
+| project 
+Endpoint =Computer, 
+CollectorName=CollectorHostName, 
+LastSeenTimeUTC = LastSeenTime,
+LastSeenTime = format_datetime(datetime_add("minute", 330, LastSeenTime), 'dd-MM-yyyy HH:mm:ss'),Channel=Type,DeviceVendor,DeviceProduct,EntityName
+| extend Diff = datetime_diff('hour', now(), LastSeenTimeUTC)
+| extend StatusIndex = case(Diff > 12,0,1) 
+// Uncomment below line to view only offline server list
+//| where Diff > 12 
+| extend Status = case(Diff > 12,"❌ Offline","✅ Online")
+| order by StatusIndex asc
+| project-away StatusIndex, Diff,LastSeenTimeUTC
