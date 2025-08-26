@@ -1,0 +1,48 @@
+let thresholdPercent = 10;
+let assetList = _GetWatchlist('RCAPMasterAssetInventoryv2') 
+    | project Computer, ComputerIP, DeviceType, Entity, OS, Collector, StatusThreshold, StatusThresholdComments, Comments;
+let logs = union isfuzzy=true
+    WindowsEvent
+  , Syslog
+  , SecurityEvent
+  , CommonSecurityLog;
+let m365 = OfficeActivity
+| extend Computer = "Microsoft 365";
+let entra = union isfuzzy=true
+    AuditLogs
+  , SigninLogs
+| extend Computer = "Microsoft Entra ID";
+let sophosedr = union SophosEP*
+| extend Computer = "Sophos EDR";
+let msintune = union Intune*
+| extend Computer = "Microsoft Intune";
+union logs,m365,entra,sophosedr,msintune
+| extend LogComputer = Computer
+| summarize LastLogTimestamp = max(TimeGenerated) by LogComputer
+| join kind=rightouter (
+    assetList
+) on $left.LogComputer == $right.Computer
+| extend ThresholdMinutes = toint(StatusThreshold)
+| extend MinutesSinceLastLog = iif(
+    isnull(LastLogTimestamp), 
+    -1, 
+    max_of(0, datetime_diff("minute", LastLogTimestamp, now()))
+)
+| extend Status1 = case(
+    MinutesSinceLastLog == -1, "Offline",
+    MinutesSinceLastLog > ThresholdMinutes, "Offline",
+    "Online"
+)
+| extend Status = case(Status1 == "Online", "Reporting", "Not Reporting")
+| project Computer, ComputerIP, DeviceType, Entity, OS, Comments, LastLogTimestamp, Collector, StatusThreshold, StatusThresholdComments, Status
+| summarize Reporting = countif(Status == "Reporting"), 
+            NotReporting = countif(Status == "Not Reporting")
+        by Entity
+| extend Total = Reporting + NotReporting
+| extend NotReportingPercent = iif(Total == 0, 0.0, (NotReporting * 100.0) / Total)
+| extend HealthStatus = case(
+    NotReportingPercent > thresholdPercent, "🔴 Anomaly",
+    "🟢 Normal"
+)
+| project Entity, Reporting, NotReporting, HealthStatus
+| sort by Entity asc 
