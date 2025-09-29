@@ -1,5 +1,5 @@
 let Owner = "ABC";
-let EmailID = "ABC@sonata-software.com";
+let EmailID = "ABC@test-software.com";
 Heartbeat
 | where TimeGenerated > ago(7d)
 | where Category == 'Azure Monitor Agent'
